@@ -7,25 +7,24 @@
 #  All Rights Reserved
 #  <jafo@tummy.com>
 
-G_Id = '$Id: tumgreyspf-configtest,v 1.4 2007-06-10 01:11:11 jafo Exp $'
-
 import sys
 
 
 #  check arguments
 if len(sys.argv) != 2:
-	print 'ERROR: Configuration file must be specified as a command-line ' \
-			'argument.'
-	sys.exit(2)
+    print 'ERROR: Configuration file must be specified as a command-line ' \
+          'argument.'
+    sys.exit(2)
 
-#  test load of config
+# test load of config
 try:
-	execfile(sys.argv[1], {}, {})
+    execfile(sys.argv[1], {}, {})
 except Exception, e:
-	import traceback
-	etype, value, tb = sys.exc_info()
-	print ('Error reading config file "%s": %s'
-			% ( sys.argv[1], sys.exc_info()[1] ))
-	sys.exit(1)
+    import traceback
+
+    etype, value, tb = sys.exc_info()
+    print ('Error reading config file "%s": %s'
+           % (sys.argv[1], sys.exc_info()[1]))
+    sys.exit(1)
 
 sys.exit(0)
