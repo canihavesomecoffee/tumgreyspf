@@ -90,7 +90,7 @@ Queue-id was not getting set for some paths through the code.  Caused
 ================================
 Version 1.27 -- Thu Jun 14, 2007
 
-Patch from Scott Kitterman which changes the capitilization to hopefully
+Patch from Scott Kitterman which changes the capitalization to hopefully
    prevent problems with future versions of SPF.
 
 ================================

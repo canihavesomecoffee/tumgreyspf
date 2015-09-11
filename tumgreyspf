@@ -51,6 +51,16 @@ def is_loopback(address):
 
 #############################################
 def spf_check(msg_data, config_data, config_global):
+    """
+    Checks if the incoming message has valid SPF records.
+
+    :param msg_data: The data the MTA is passing us.
+    :param config_data: The configuration data.
+    :param global_config: Global configuration for tumgreyspf
+    :return: The status (None, 'reject', 'defer', 'prepend') and a status
+        message.
+    """
+
     debug_level = config_global.get('debugLevel', 0)
     queue_id = ('QUEUE_ID="%s"' % (msg_data.get('queue_id', '<UNKNOWN>')))
     ip = msg_data.get('client_address')
@@ -183,6 +193,15 @@ def spf_check(msg_data, config_data, config_global):
 
 ##################################################
 def greylist_check(msg_data, config_data, config_global):
+    """
+    Performs a check for the incoming message based on greylisting.
+
+    :param msg_data: The data the MTA is passing us.
+    :param config_data: The configuration data.
+    :param global_config: Global configuration for tumgreyspf
+    :return: The status (None, 'defer') and a status message.
+    """
+
     greylist_dir = config_global['greylistDir']
 
     ip = msg_data.get('client_address')
@@ -296,6 +315,15 @@ def greylist_check(msg_data, config_data, config_global):
 
 ###################################################
 def black_hole_check(msg_data, config_data, config_global):
+    """
+    Performs a check on the incoming message using a blacklist
+
+    :param msg_data: The data the MTA is passing us.
+    :param config_data: The configuration data.
+    :param global_config: Global configuration for tumgreyspf
+    :return: The status (None, 'reject') and a status message.
+    """
+
     black_hole_dir = config_global['blackholeDir']
 
     ip = msg_data.get('client_address')

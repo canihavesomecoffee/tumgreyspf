@@ -22,5 +22,5 @@ RCPTs per second.
 These both seemed to be using 100% CPU time.  Obviously, with other mail
 processing going on there will be less CPU and disc bandwidth available for
 tumgreyspf.  However, greylisting is blocking well over 80% of incoming
-messages right now on our server.  Thus, there are around 5x fewer mesages
+messages right now on our server.  Thus, there are around 5x fewer messages
 being processed, leading to much more overall available resources.
