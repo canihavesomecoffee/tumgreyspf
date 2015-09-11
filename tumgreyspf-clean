@@ -7,76 +7,101 @@
 #  All Rights Reserved
 #  <jafo@tummy.com>
 
-import os, re, string, syslog, sys, time
+import os
+import re
+import string
+import sys
+import time
+
+import syslog
+
 sys.path.append('/usr/local/lib/tumgreyspf')
 import tumgreyspfsupp
 
+
 ###################
-def syslogprint(s):
-	print s
-syslog.syslog = syslogprint
+def syslog_print(s):
+    print s
+
+
+syslog.syslog = syslog_print
 
 
 ##################################
-def visit(config, dirname, fileList):
-	ospathisfile = os.path.isfile
-	ospathjoin = os.path.join
-	base = config['greylistBasedir']
-	rx = re.compile(r'^/?(\d+)/(\d+)/(\d+)/((\d+)/)?greylist/(.*)$')
-	rxIp = re.compile(r'^/?(\d+)/(\d+)/(\d+)/((\d+)/)?check_file')
-	didUnlink = 0
-	for file in fileList:
-		path = ospathjoin(dirname, file)
-		if not ospathisfile(path): continue
+def visit(configuration, dir_name, file_list):
+    """
+    Loops through all the files in the directory and does an unlink on the
+    file if they expired. Also removes empty directories.
 
-		recipient = file
-		relative = path[len(base):]
-		if configGlobal['greylistByIPOnly'] > 0:
-			m = rxIp.match(relative)
-		else:
-			m = rx.match(relative)
-		if not m:
-			print 'Unknown path "%s" found in greylist directory.' % relative
-			continue
+    :param configuration: The configuration settings.
+    :param dir_name: The current directory.
+    :param file_list: The files in the directory.
+    :return: nothing.
+    """
 
-		#  get IP information
-		groups = m.groups()
-		ipList = list(groups[:3])
-		if groups[3] != None: ipList.append(groups[4])
-		else: ipList.append('0')
+    base = configuration['greylistBasedir']
+    regex = re.compile(r'^/?(\d+)/(\d+)/(\d+)/((\d+)/)?greylist/(.*)$')
+    regex_ip = re.compile(r'^/?(\d+)/(\d+)/(\d+)/((\d+)/)?check_file')
+    unlinked = 0
+    for file_name in file_list:
+        path = os.path.join(dir_name, file_name)
+        if not os.path.isfile(path):
+            continue
 
-		ip = string.join(ipList, '.')
-		sender = groups[5]
+        recipient = file_name
+        relative = path[len(base):]
+        if configuration['greylistByIPOnly'] > 0:
+            m = regex_ip.match(relative)
+        else:
+            m = regex.match(relative)
+        if not m:
+            print 'Unknown path "%s" found in greylist directory.' % relative
+            continue
 
-		#  look up expration day
-		data = {
-				'envelope_sender' : tumgreyspfsupp.unquote_address(sender),
-				'envelope_recipient' : tumgreyspfsupp.unquote_address(recipient),
-				'client_address' : ip,
-				}
-		configData = tumgreyspfsupp.lookup_config(config.get('configPath'),
-				data, config.copy())
-		expireTime = time.time() - (configData['GREYLISTEXPIREDAYS'] * 86400)
+        # get IP information
+        groups = m.groups()
+        ip_list = list(groups[:3])
+        if groups[3] != None:
+            ip_list.append(groups[4])
+        else:
+            ip_list.append('0')
 
-		#  check for expiration
-		statData = os.stat(path)
-		mtime = statData[8]
-		ctime = statData[9]
-		expiredAuth = ctime < mtime and (time.time() - mtime) > (12 * 3600)
-		expiredAfterAuth = ctime < expireTime
+        ip = string.join(ip_list, '.')
+        sender = groups[5]
 
-		#  check for expiration
-		if expiredAuth or expiredAfterAuth:
-			os.remove(path)
-			didUnlink = 1
+        #  look up expiration day
+        data = {
+            'envelope_sender': tumgreyspfsupp.unquote_address(sender),
+            'envelope_recipient': tumgreyspfsupp.unquote_address(recipient),
+            'client_address': ip,
+        }
+        config_data = tumgreyspfsupp.lookup_config(
+            configuration.get('configPath'), data, configuration.copy())
+        expiration_time = time.time() - (config_data['GREYLISTEXPIREDAYS'] *
+                                         86400)
 
-	#  remove this directory and it's parents if empty
-	if didUnlink:
-		newDirname = dirname
-		while len(newDirname) > len(base):
-			try: os.rmdir(newDirname)
-			except OSError: break
-			newDirname = os.path.dirname(newDirname)
+        #  check for expiration
+        stat_data = os.stat(path)
+        m_time = stat_data[8]
+        c_time = stat_data[9]
+        expired_auth = c_time < m_time and (time.time() - m_time) > (12 *
+                                                                     3600)
+        expired_after_auth = c_time < expiration_time
+
+        #  check for expiration
+        if expired_auth or expired_after_auth:
+            os.remove(path)
+            unlinked = 1
+
+    # remove this directory and it's parents if empty
+    if unlinked:
+        current_directory = dir_name
+        while len(current_directory) > len(base):
+            try:
+                os.rmdir(current_directory)
+            except OSError:
+                break
+            current_directory = os.path.dirname(current_directory)
 
 
 ############################
