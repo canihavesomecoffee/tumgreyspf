@@ -394,9 +394,24 @@ while 1:
             elif checkerType == 'spf':
                 checkerValue, checkerReason = spfcheck(data, configData,
                         configGlobal)
+                if debugLevel >= 4:
+                    syslog.syslog('SPF check returned %s - %s' %
+                                  (checkerValue, checkerReason))
                 if configData.get('SPFSEEDONLY', 0):
                     checkerValue = None
                     checkerReason = None
+                if configData.get('CHECKNEXTIFSPFFAILS', 0) and \
+                        (checkerValue == 'reject' or checkerValue == 'defer'):
+                    # if SPF fails and we set the config, continue anyway
+                    syslog.syslog('Failed SPF, but will check next checker '
+                                  'anyway')
+                    checkerValue = None
+                    checkerReason = None
+                if configData.get('SPFVALIDATIONISENOUGH',0) and \
+                                checkerValue == 'prepend':
+                    # Do not further validate the email; spf is enough
+                    syslog.syslog('Passed SPF, no more checks necessary')
+                    break
                 if checkerValue != None and checkerValue != 'prepend':
                     break
             elif checkerType == 'blackhole':
