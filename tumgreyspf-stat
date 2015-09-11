@@ -6,78 +6,89 @@
 #  All Rights Reserved
 #  <jafo@tummy.com>
 
-import os, re, string, syslog, sys, time
+import os
+import re
+import string
+import sys
+import time
+
+import syslog
+
 sys.path.append('/usr/local/lib/tumgreyspf')
 import tumgreyspfsupp
 
+
 ###################
 def syslogprint(s):
-	print s
+    print s
+
+
 syslog.syslog = syslogprint
 
 
 ##################################
-def visit(config, dirname, fileList):
-	ospathisfile = os.path.isfile
-	ospathjoin = os.path.join
-	base = config['greylistBasedir']
-	rx = re.compile(r'^/?(\d+)/(\d+)/(\d+)/(\d+)/greylist/(.*)$')
-	if config['ignoreLastByte'] > 0:
-		rx = re.compile(r'^/?(\d+)/(\d+)/(\d+)/greylist/(.*)$')
-	didUnlink = 0
-	for file in fileList:
-		path = ospathjoin(dirname, file)
-		if not ospathisfile(path): continue
+def visit(configuration, dir_name, file_list):
+    base = configuration['greylistBasedir']
+    rx = re.compile(r'^/?(\d+)/(\d+)/(\d+)/(\d+)/greylist/(.*)$')
+    if configuration['ignoreLastByte'] > 0:
+        rx = re.compile(r'^/?(\d+)/(\d+)/(\d+)/greylist/(.*)$')
+    unlinked = 0
+    for file in file_list:
+        path = os.path.join(dir_name, file)
+        if not os.path.isfile(path):
+            continue
 
-		recipient = file
-		relative = dirname[len(base):]
-		m = rx.match(relative)
-		if not m:
-			print 'Unknown path "%s" found in greylist directory.' % relative
-			continue
-		ip = string.join(m.groups()[:-1], '.')
-		sender = m.groups()[-1]
+        recipient = file
+        relative = dir_name[len(base):]
+        m = rx.match(relative)
+        if not m:
+            print 'Unknown path "%s" found in greylist directory.' % relative
+            continue
+        ip = string.join(m.groups()[:-1], '.')
+        sender = m.groups()[-1]
 
-		#  look up expration day
-		data = {
-				'envelope_sender' : tumgreyspfsupp.unquote_address(sender),
-				'envelope_recipient' : tumgreyspfsupp.unquote_address(recipient),
-				'client_address' : ip,
-				}
-		configData = tumgreyspfsupp.lookup_config(config.get('configPath'),
-				data, config.copy())
-		expireTime = time.time() - (configData['GREYLISTEXPIREDAYS'] * 86400)
+        #  look up expration day
+        data = {
+            'envelope_sender': tumgreyspfsupp.unquote_address(sender),
+            'envelope_recipient': tumgreyspfsupp.unquote_address(recipient),
+            'client_address': ip,
+        }
+        config_data = tumgreyspfsupp.lookup_config(
+            configuration.get('configPath'), data, configuration.copy())
+        expire_time = time.time() - (config_data['GREYLISTEXPIREDAYS'] *
+                                     86400)
 
-		#  check
-		statData = os.stat(path)
-		mtime = statData[8]
-		ctime = statData[9]
-		now = time.time()
+        #  check
+        stat_data = os.stat(path)
+        m_time = stat_data[8]
+        c_time = stat_data[9]
+        now = time.time()
 
-		#  status information
-		stats = ''
-		if ctime < mtime:
-			stats = stats + 'Blocked,'
-		if mtime > now:
-			stats = stats + 'Pending,'
-		if stats:
-			stats = ' (%s)' % stats[:-1]
+        #  status information
+        stats = ''
+        if c_time < m_time:
+            stats += 'Blocked,'
+        if m_time > now:
+            stats += 'Pending,'
+        if stats:
+            stats = ' (%s)' % stats[:-1]
 
-		def prettyseconds(seconds):
-			for prettySeconds, prettyDescription in (
-					( 86400, 'd' ),
-					( 3600, 'h' ),
-					( 60, 'm' ),
-					):
-				if seconds > prettySeconds:
-					return('%d%s' % ( seconds / prettySeconds, prettyDescription ))
-			return('%ss' % seconds)
+        def pretty_seconds(seconds):
+            for prettySeconds, prettyDescription in (
+                    (86400, 'd'),
+                    (3600, 'h'),
+                    (60, 'm'),
+            ):
+                if seconds > prettySeconds:
+                    return (
+                        '%d%s' % (seconds / prettySeconds, prettyDescription))
+            return '%ss' % seconds
 
-		#  display information
-		print ('IP=%s SENDER=%s RECIPIENT=%s STARTS=%s LAST=%s EXPIRESIN=%s%s'
-				% ( ip, sender, recipient, prettyseconds(now - mtime),
-					prettyseconds(now - ctime),
-					prettyseconds(int(expireTime - now)), stats ))
+        #  display information
+        print ('IP=%s SENDER=%s RECIPIENT=%s STARTS=%s LAST=%s EXPIRESIN=%s%s'
+               % (ip, sender, recipient, pretty_seconds(now - m_time),
+                  pretty_seconds(now - c_time),
+                  pretty_seconds(int(expire_time - now)), stats))
 
 
 ############################
@@ -86,10 +97,11 @@ config = tumgreyspfsupp.process_config_file()
 greylistBasedir = os.path.join(config['greylistDir'], 'client_address')
 config['greylistBasedir'] = greylistBasedir
 try:
-	os.path.walk(greylistBasedir, visit, config)
+    os.path.walk(greylistBasedir, visit, config)
 
-#  ignore interrupts and errors writing stdout
+# ignore interrupts and errors writing stdout
 except IOError, e:
-	if e.errno != 32: raise
+    if e.errno != 32:
+        raise
 except KeyboardInterrupt:
-	pass
+    pass
