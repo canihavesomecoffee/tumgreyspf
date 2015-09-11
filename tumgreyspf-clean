@@ -50,11 +50,11 @@ def visit(config, dirname, fileList):
 
 		#  look up expration day
 		data = {
-				'envelope_sender' : tumgreyspfsupp.unquoteAddress(sender),
-				'envelope_recipient' : tumgreyspfsupp.unquoteAddress(recipient),
+				'envelope_sender' : tumgreyspfsupp.unquote_address(sender),
+				'envelope_recipient' : tumgreyspfsupp.unquote_address(recipient),
 				'client_address' : ip,
 				}
-		configData = tumgreyspfsupp.lookupConfig(config.get('configPath'),
+		configData = tumgreyspfsupp.lookup_config(config.get('configPath'),
 				data, config.copy())
 		expireTime = time.time() - (configData['GREYLISTEXPIREDAYS'] * 86400)
 
@@ -81,7 +81,7 @@ def visit(config, dirname, fileList):
 
 ############################
 #  main code
-config = tumgreyspfsupp.processConfigFile()
+config = tumgreyspfsupp.process_config_file()
 greylistBasedir = os.path.join(config['greylistDir'], 'client_address')
 config['greylistBasedir'] = greylistBasedir
 os.path.walk(greylistBasedir, visit, config)
